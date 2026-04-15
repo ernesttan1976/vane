@@ -26,7 +26,7 @@ const morphologyRowSchema = z.object({
 const derivedWordSchema = z.object({
   word: z.string(),
   morphemeBreakdown: z.string(),
-  note: z.string().optional(),
+  note: z.string().nullable(),
 });
 
 export const morphologyMatrixInputSchema = z.object({

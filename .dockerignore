@@ -1,1 +1,16 @@
 **/node_modules
+.next
+.git
+.cursor
+.vscode
+dist
+build
+coverage
+*.log
+*.local
+Dockerfile*
+docker-compose*.yml
+README.md
+LICENSE
+tmp
+uploads

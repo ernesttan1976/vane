@@ -26,17 +26,6 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /home/vane
 
-COPY --from=builder /home/vane/public ./public
-COPY --from=builder /home/vane/.next/static ./public/_next/static
-COPY --from=builder /home/vane/.next/standalone ./
-COPY --from=builder /home/vane/data ./data
-COPY drizzle ./drizzle
-
-RUN mkdir /home/vane/uploads
-
-RUN yarn add playwright
-RUN yarn playwright install --with-deps --only-shell chromium
-
 RUN useradd --shell /bin/bash --system \
     --home-dir "/usr/local/searxng" \
     --comment 'Privacy-respecting metasearch engine' \
@@ -64,6 +53,16 @@ RUN cd "/usr/local/searxng/searxng-src" && \
 USER root
 
 WORKDIR /home/vane
+COPY --from=builder /home/vane/public ./public
+COPY --from=builder /home/vane/.next/static ./public/_next/static
+COPY --from=builder /home/vane/.next/standalone ./
+COPY --from=builder /home/vane/data ./data
+COPY drizzle ./drizzle
+
+RUN mkdir /home/vane/uploads
+RUN npm install -g playwright@1.59.1 && \
+    playwright install --with-deps --only-shell chromium
+
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 RUN sed -i 's/\r$//' ./entrypoint.sh || true
