@@ -1,5 +1,6 @@
 import academicSearchAction from './search/academicSearch';
 import doneAction from './done';
+import dspyFunctionAction from './language/dspyFunction';
 import planAction from './plan';
 import ActionRegistry from './registry';
 import scrapeURLAction from './scrapeURL';
@@ -14,5 +15,6 @@ ActionRegistry.register(scrapeURLAction);
 ActionRegistry.register(uploadsSearchAction);
 ActionRegistry.register(academicSearchAction);
 ActionRegistry.register(socialSearchAction);
+ActionRegistry.register(dspyFunctionAction);
 
 export { ActionRegistry };
