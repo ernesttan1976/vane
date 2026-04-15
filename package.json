@@ -17,6 +17,7 @@
     "@huggingface/transformers": "^3.8.1",
     "@icons-pack/react-simple-icons": "^12.3.0",
     "@mozilla/readability": "^0.6.0",
+    "@napi-rs/canvas": "^0.1.87",
     "@phosphor-icons/react": "^2.1.10",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tailwindcss/typography": "^0.5.12",
@@ -73,8 +74,5 @@
     "prettier": "^3.2.5",
     "tailwindcss": "^3.3.0",
     "typescript": "^5.9.3"
-  },
-  "optionalDependencies": {
-    "@napi-rs/canvas": "^0.1.87"
   }
 }
