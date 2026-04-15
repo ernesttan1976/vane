@@ -36,3 +36,19 @@ export const chats = sqliteTable('chats', {
     .$type<DBFile[]>()
     .default(sql`'[]'`),
 });
+
+export const dspyFunctions = sqliteTable('dspy_functions', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  description: text('description').notNull(),
+  category: text('category').notNull(),
+  inputSchemaJson: text('inputSchemaJson', { mode: 'json' }).notNull(),
+  outputSchemaJson: text('outputSchemaJson', { mode: 'json' }).notNull(),
+  moduleType: text({ enum: ['ChainOfThought', 'PredictModule'] }).notNull(),
+  instructions: text('instructions').notNull(),
+  userPromptTemplate: text('userPromptTemplate').notNull(),
+  formatterType: text('formatterType').notNull(),
+  safetyJson: text('safetyJson', { mode: 'json' }).default(sql`'{}'`),
+  createdAt: text('createdAt').notNull(),
+  updatedAt: text('updatedAt').notNull(),
+});

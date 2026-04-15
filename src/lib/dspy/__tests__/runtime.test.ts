@@ -68,7 +68,7 @@ test('runtime can execute registered custom function', async () => {
     moduleConfig: {
       moduleType: 'PredictModule',
       instructions: 'Echo input',
-      buildUserPrompt: (input) => input.text,
+      buildUserPrompt: (input) => (input as { text: string }).text,
     },
     formatter: (output: any) => `# ${output.echoed}`,
   };

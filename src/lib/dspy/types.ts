@@ -47,3 +47,24 @@ export type DspyExecutionResult<T = unknown> = {
     retriesUsed: number;
   };
 };
+
+export const dspyModuleTypeSchema = z.enum(['ChainOfThought', 'PredictModule']);
+export const dspyFormatterTypeSchema = z.enum(['json', 'morphology_matrix']);
+
+export const dspyPersistedFunctionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().min(1),
+  category: z.string().min(1),
+  inputSchemaJson: z.record(z.string(), z.unknown()),
+  outputSchemaJson: z.record(z.string(), z.unknown()),
+  moduleType: dspyModuleTypeSchema,
+  instructions: z.string().min(1),
+  userPromptTemplate: z.string().min(1),
+  formatterType: dspyFormatterTypeSchema,
+  safetyJson: z.record(z.string(), z.unknown()).optional(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+});
+
+export type DspyFunctionRecord = z.infer<typeof dspyPersistedFunctionSchema>;

@@ -116,6 +116,7 @@ Keep the JSON compact and concise:
 export const executeDspyFunction = async (
   request: DspyExecutionRequest,
 ): Promise<DspyExecutionResult> => {
+  await DspyFunctionRegistry.hydrateFromDb();
   const definition = DspyFunctionRegistry.get(request.functionName);
 
   if (!definition) {

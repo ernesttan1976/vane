@@ -25,6 +25,8 @@ const getStepIcon = (step: ResearchBlockSubStep) => {
     return <FileText className="w-4 h-4" />;
   } else if (step.type === 'reading') {
     return <BookSearch className="w-4 h-4" />;
+  } else if (step.type === 'dspy_invoking' || step.type === 'dspy_result') {
+    return <Brain className="w-4 h-4" />;
   }
 
   return null;
@@ -47,6 +49,10 @@ const getStepTitle = (
     return 'Scanning your uploaded documents';
   } else if (step.type === 'upload_search_results') {
     return `Reading ${step.results.length} ${step.results.length === 1 ? 'document' : 'documents'}`;
+  } else if (step.type === 'dspy_invoking') {
+    return `Running DSPy function: ${step.functionName}`;
+  } else if (step.type === 'dspy_result') {
+    return `Completed DSPy function: ${step.functionName}`;
   }
 
   return 'Processing';
@@ -253,6 +259,24 @@ const AssistantSteps = ({
                             })}
                           </div>
                         )}
+
+                      {step.type === 'dspy_invoking' && (
+                        <p className="text-xs text-black/70 dark:text-white/70 mt-1.5 font-mono break-all">
+                          Input: {JSON.stringify(step.input)}
+                        </p>
+                      )}
+
+                      {step.type === 'dspy_result' && (
+                        <div className="mt-1.5 space-y-1">
+                          <p className="text-xs text-black/70 dark:text-white/70">
+                            Module: {step.metadata.moduleType} | Retries used:{' '}
+                            {step.metadata.retriesUsed}
+                          </p>
+                          <p className="text-xs text-black/70 dark:text-white/70 whitespace-pre-wrap line-clamp-6">
+                            {step.markdown}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 );

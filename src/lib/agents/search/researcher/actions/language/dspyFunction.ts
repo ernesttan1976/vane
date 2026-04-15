@@ -30,11 +30,50 @@ const dspyFunctionAction: ResearchAction<typeof actionSchema> = {
   getDescription: () => actionDescription,
   enabled: () => true,
   execute: async (input, additionalConfig) => {
+    const researchBlock = additionalConfig.session.getBlock(
+      additionalConfig.researchBlockId,
+    );
+
+    if (researchBlock && researchBlock.type === 'research') {
+      researchBlock.data.subSteps.push({
+        id: crypto.randomUUID(),
+        type: 'dspy_invoking',
+        functionName: input.functionName,
+        input: input.input,
+      });
+
+      additionalConfig.session.updateBlock(additionalConfig.researchBlockId, [
+        {
+          op: 'replace',
+          path: '/data/subSteps',
+          value: researchBlock.data.subSteps,
+        },
+      ]);
+    }
+
     const result = await executeDspyFunction({
       functionName: input.functionName,
       input: input.input,
       llm: additionalConfig.llm,
     });
+
+    if (researchBlock && researchBlock.type === 'research') {
+      researchBlock.data.subSteps.push({
+        id: crypto.randomUUID(),
+        type: 'dspy_result',
+        functionName: result.functionName,
+        markdown: result.markdown,
+        metadata: result.metadata,
+      });
+
+      additionalConfig.session.updateBlock(additionalConfig.researchBlockId, [
+        {
+          op: 'replace',
+          path: '/data/subSteps',
+          value: researchBlock.data.subSteps,
+        },
+      ]);
+    }
 
     return {
       type: 'search_results',
