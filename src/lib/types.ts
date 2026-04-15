@@ -99,13 +99,33 @@ export type UploadSearchResultsResearchBlock = {
   results: Chunk[];
 };
 
+export type DspyInvokingResearchBlock = {
+  id: string;
+  type: 'dspy_invoking';
+  functionName: string;
+  input: Record<string, unknown>;
+};
+
+export type DspyResultResearchBlock = {
+  id: string;
+  type: 'dspy_result';
+  functionName: string;
+  markdown: string;
+  metadata: {
+    moduleType: string;
+    retriesUsed: number;
+  };
+};
+
 export type ResearchBlockSubStep =
   | ReasoningResearchBlock
   | SearchingResearchBlock
   | SearchResultsResearchBlock
   | ReadingResearchBlock
   | UploadSearchingResearchBlock
-  | UploadSearchResultsResearchBlock;
+  | UploadSearchResultsResearchBlock
+  | DspyInvokingResearchBlock
+  | DspyResultResearchBlock;
 
 export type ResearchBlock = {
   id: string;

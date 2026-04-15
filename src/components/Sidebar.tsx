@@ -5,6 +5,7 @@ import {
   BookOpenText,
   Home,
   Search,
+  Bot,
   SquarePen,
   Settings,
   Plus,
@@ -48,6 +49,12 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
       href: '/library',
       active: segments.includes('library'),
       label: 'Library',
+    },
+    {
+      icon: Bot,
+      href: '/dspy',
+      active: segments.includes('dspy'),
+      label: 'DSPy',
     },
   ];
 
