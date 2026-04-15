@@ -143,10 +143,38 @@ const runStructuredGenerationStream = async function* (
   }
 };
 
-const toPartialMarkdown = (
-  partialStructured: Record<string, unknown>,
-) => {
-  return `\`\`\`json\n${JSON.stringify(partialStructured, null, 2)}\n\`\`\``;
+const summarizeValue = (value: unknown): string => {
+  if (value === null || value === undefined) return '...';
+  if (typeof value === 'string') return value.trim() || '...';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '...';
+    return value
+      .slice(0, 3)
+      .map((item) => summarizeValue(item))
+      .join(', ');
+  }
+  if (typeof value === 'object') return '...';
+  return '...';
+};
+
+const toReadableLabel = (key: string): string =>
+  key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .toLowerCase();
+
+const toPartialMarkdown = (partialStructured: Record<string, unknown>) => {
+  const entries = Object.entries(partialStructured);
+  if (entries.length === 0) {
+    return 'Thinking through the response...';
+  }
+
+  const bullets = entries
+    .slice(0, 8)
+    .map(([key, value]) => `- Considering ${toReadableLabel(key)}: ${summarizeValue(value)}`);
+
+  return ['Thinking through the response...', '', ...bullets].join('\n');
 };
 
 export const executeDspyFunction = async (

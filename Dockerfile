@@ -1,4 +1,4 @@
-FROM node:24.5.0-slim AS builder
+FROM node:22-slim AS builder
 
 RUN apt-get update && apt-get install -y python3 python3-pip sqlite3 && rm -rf /var/lib/apt/lists/*
 
@@ -15,7 +15,7 @@ COPY drizzle ./drizzle
 RUN mkdir -p /home/vane/data
 RUN yarn build
 
-FROM node:24.5.0-slim
+FROM node:22-slim
 
 RUN apt-get update && apt-get install -y \
     python3-dev python3-babel python3-venv python-is-python3 \
@@ -60,8 +60,8 @@ COPY --from=builder /home/vane/data ./data
 COPY drizzle ./drizzle
 
 RUN mkdir /home/vane/uploads
-RUN npm install -g playwright@1.59.1 && \
-    playwright install --with-deps --only-shell chromium
+RUN yarn global add playwright@1.59.1 && \
+    /usr/local/bin/playwright install --with-deps --only-shell chromium
 
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
