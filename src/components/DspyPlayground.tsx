@@ -31,6 +31,11 @@ type ExecuteResult = {
   };
 };
 
+type ExecuteStreamEvent =
+  | { type: 'chunk'; payload: ExecuteResult }
+  | { type: 'result'; payload: ExecuteResult }
+  | { type: 'error'; payload: { message: string } };
+
 const DEFAULT_INPUT_BY_FUNCTION: Record<string, Record<string, unknown>> = {
   morphology_matrix: { word: 'happy' },
 };
@@ -205,13 +210,53 @@ const DspyPlayground = () => {
           },
         }),
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.message || 'Execution failed.');
+      if (!res.ok || !res.body) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || 'Execution failed.');
       }
 
-      setOutput(data as ExecuteResult);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let pending = '';
+      let finalResult: ExecuteResult | null = null;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        pending += decoder.decode(value, { stream: true });
+
+        const lines = pending.split('\n');
+        pending = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+
+          let event: ExecuteStreamEvent;
+          try {
+            event = JSON.parse(trimmed) as ExecuteStreamEvent;
+          } catch {
+            continue;
+          }
+
+          if (event.type === 'error') {
+            throw new Error(event.payload.message || 'Execution failed.');
+          }
+
+          if (event.type === 'chunk') {
+            setOutput(event.payload);
+          }
+
+          if (event.type === 'result') {
+            finalResult = event.payload;
+            setOutput(event.payload);
+          }
+        }
+      }
+
+      if (!finalResult) {
+        throw new Error('Execution ended without a final result.');
+      }
     } catch (err: any) {
       setError(err?.message || 'Failed to execute DSPy function.');
     } finally {

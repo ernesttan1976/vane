@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import ModelRegistry from '@/lib/models/registry';
 import { ModelWithProvider } from '@/lib/models/types';
-import { executeDspyFunction } from '@/lib/dspy/runtime';
+import { streamExecuteDspyFunction } from '@/lib/dspy/runtime';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,13 +37,39 @@ export const POST = async (req: Request) => {
     const registry = new ModelRegistry();
     const llm = await registry.loadChatModel(chatModel.providerId, chatModel.key);
 
-    const result = await executeDspyFunction({
-      functionName,
-      input,
-      llm,
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const event of streamExecuteDspyFunction({
+            functionName,
+            input,
+            llm,
+          })) {
+            controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+          }
+          controller.close();
+        } catch (error: any) {
+          controller.enqueue(
+            encoder.encode(
+              `${JSON.stringify({
+                type: 'error',
+                payload: { message: error?.message || 'Execution failed.' },
+              })}\n`,
+            ),
+          );
+          controller.close();
+        }
+      },
     });
 
-    return Response.json(result);
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'application/x-ndjson; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+      },
+    });
   } catch (err: any) {
     console.error(`Failed to execute DSPy function: ${err?.message || err}`);
     return Response.json(

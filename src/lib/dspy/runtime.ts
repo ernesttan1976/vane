@@ -113,6 +113,42 @@ Keep the JSON compact and concise:
   }
 };
 
+const runStructuredGenerationStream = async function* (
+  request: DspyExecutionRequest,
+  definition: NonNullable<ReturnType<typeof DspyFunctionRegistry.get>>,
+  input: unknown,
+  safety: z.infer<typeof dspySafetySchema>,
+) {
+  const baseMessages: Message[] = [
+    {
+      role: 'system',
+      content: `${definition.moduleConfig.instructions}\n\nUse module style: ${definition.moduleConfig.moduleType}.`,
+    },
+    {
+      role: 'user',
+      content: definition.moduleConfig.buildUserPrompt(input),
+    },
+  ];
+
+  for await (const objectChunk of request.llm.streamObject({
+    schema: definition.outputSchema,
+    messages: baseMessages,
+    options: {
+      maxTokens: safety.maxTokens,
+      temperature: safety.temperature,
+      topP: safety.topP,
+    },
+  })) {
+    yield objectChunk;
+  }
+};
+
+const toPartialMarkdown = (
+  partialStructured: Record<string, unknown>,
+) => {
+  return `\`\`\`json\n${JSON.stringify(partialStructured, null, 2)}\n\`\`\``;
+};
+
 export const executeDspyFunction = async (
   request: DspyExecutionRequest,
 ): Promise<DspyExecutionResult> => {
@@ -163,4 +199,91 @@ export const executeDspyFunction = async (
   }
 
   throw new Error('DSPy runtime execution failed unexpectedly.');
+};
+
+export type DspyExecutionStreamEvent =
+  | {
+      type: 'chunk';
+      payload: {
+        functionName: string;
+        markdown: string;
+        structured: Record<string, unknown>;
+        metadata: {
+          moduleType: string;
+          retriesUsed: number;
+        };
+      };
+    }
+  | {
+      type: 'result';
+      payload: DspyExecutionResult;
+    };
+
+export const streamExecuteDspyFunction = async function* (
+  request: DspyExecutionRequest,
+): AsyncGenerator<DspyExecutionStreamEvent> {
+  await DspyFunctionRegistry.hydrateFromDb();
+  const definition = DspyFunctionRegistry.get(request.functionName);
+
+  if (!definition) {
+    throw new Error(`DSPy function "${request.functionName}" is not registered.`);
+  }
+
+  const parsedInput = definition.inputSchema.safeParse(request.input);
+  if (!parsedInput.success) {
+    throw new Error(`Invalid input: ${z.prettifyError(parsedInput.error)}`);
+  }
+
+  const safety = dspySafetySchema.parse(definition.safety || {});
+  let retriesUsed = 0;
+
+  while (retriesUsed <= safety.retries) {
+    try {
+      let latestChunk: Record<string, unknown> = {};
+      for await (const chunk of runStructuredGenerationStream(
+        request,
+        definition,
+        parsedInput.data,
+        safety,
+      )) {
+        latestChunk = (chunk || {}) as Record<string, unknown>;
+        yield {
+          type: 'chunk',
+          payload: {
+            functionName: definition.name,
+            markdown: toPartialMarkdown(latestChunk),
+            structured: latestChunk,
+            metadata: {
+              moduleType: definition.moduleConfig.moduleType,
+              retriesUsed,
+            },
+          },
+        };
+      }
+
+      const parsedOutput = definition.outputSchema.parse(latestChunk);
+      const markdown = definition.formatter(parsedOutput);
+
+      yield {
+        type: 'result',
+        payload: {
+          functionName: definition.name,
+          markdown,
+          structured: parsedOutput,
+          metadata: {
+            moduleType: definition.moduleConfig.moduleType,
+            retriesUsed,
+          },
+        },
+      };
+      return;
+    } catch (error) {
+      if (retriesUsed >= safety.retries) {
+        throw error;
+      }
+      retriesUsed += 1;
+    }
+  }
+
+  throw new Error('DSPy runtime streaming execution failed unexpectedly.');
 };
